@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading;
 using Common;
 using Newtonsoft.Json;
 using static Common.Snakes;
@@ -124,6 +125,62 @@ namespace Snake
             {
                 Console.ForegroundColor = ConsoleColor.Red; 
                 Console.WriteLine("Возникло исключение: " + ex.ToString() + "\n" + ex.Message);
+            }
+        }
+
+        public static int AddSnake()
+        {
+            ViewModelGames viewModelGamesPlayer = new ViewModelGames();
+
+            viewModelGamesPlayer.SnakesPlayer = new Snakes()
+            {
+                points = new List<Snakes.Point>()
+                {
+                    new Snakes.Point() { X = 30, Y = 10},
+                    new Snakes.Point() { X = 20, Y = 10},
+                    new Snakes.Point() { X = 10, Y = 10},
+                },
+
+                direction = Snakes.Direction.Start,
+            };
+
+            viewModelGamesPlayer.Points = new Snakes.Point(new Random().Next(10, 783), new Random().Next(10, 410));
+
+            return viewModelGames.FindIndex(x => x == viewModelGamesPlayer);
+        }
+
+        public static void Timer()
+        {
+            while (true)
+            {
+                Thread.Sleep(100);
+
+                List<ViewModelGames> RemoteSnakes = viewModelGames.FindAll(x => x.SnakesPlayer.GameOver);
+
+                if (RemoteSnakes.Count > 0)
+                {
+                    foreach (var deadSnake in RemoteSnakes)
+                    {
+                        Console.ForegroundColor = ConsoleColor.Green;
+                        Console.WriteLine($"Отключил пользователя: {remoteIPAdress.Find(x => x.IdSnake == deadSnake.IdSnake).IPAddress}" +
+                            $"{remoteIPAdress.Find(x => x.IdSnake == deadSnake.IdSnake).Port}");
+
+                        remoteIPAdress.RemoveAll(x => x.IdSnake == deadSnake.IdSnake);
+                    }
+
+                    viewModelGames.RemoveAll(x => x.SnakesPlayer.GameOver);
+
+                    foreach (var user in remoteIPAdress)
+                    {
+                        Snakes snake = viewModelGames.Find(x => x.IdSnake == user.IdSnake).SnakesPlayer;
+
+                        for (int i = snake.points.Count - 1; i >= 0; i--)
+                        {
+                            if (i != 0)
+                                snake.points[i] = snake.points[i - 1];
+                        }
+                    }
+                }
             }
         }
     }
